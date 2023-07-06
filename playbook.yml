@@ -83,10 +83,16 @@
       state: started
       enabled: yes
 
-  - name: Remove /etc/resolv.conf
+  - name: Check if /etc/resolv.conf is a symlink
+    stat:
+      path: /etc/resolv.conf
+    register: resolv_conf
+
+  - name: Remove /etc/resolv.conf if it's a symlink
     file:
       path: /etc/resolv.conf
       state: absent
+    when: resolv_conf.stat.islnk is defined and resolv_conf.stat.islnk
 
   - name: Add DNS entries to /etc/resolv.conf
     copy:
@@ -117,7 +123,8 @@
         RemainAfterExit=yes
 
         [Install]
-        WantedBy=multi-user.target
+        WantedBy=multi-user.target    
+    notify: reload systemd
 
   - name: Reload systemd daemons
     command: systemctl daemon-reload
@@ -127,3 +134,8 @@
       name: fake-resolved.service
       state: started
       enabled: yes
+
+
+  handlers:
+  - name: reload systemd
+    command: systemctl daemon-reload
