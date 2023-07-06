@@ -78,4 +78,56 @@
         restrict -6 default kod notrap nomodify nopeer noquery limited
         restrict 127.0.0.1
         restrict ::1
-        restrict source
+        restrict source notrap nomodify noquery
+
+  - name: Enable ntp service
+    ansible.builtin.systemd:
+      name: ntp
+      state: started
+      enabled: yes
+
+  - name: Remove /etc/resolv.conf
+    file:
+      path: /etc/resolv.conf
+      state: absent
+
+  - name: Add DNS entries to /etc/resolv.conf
+    copy:
+      dest: /etc/resolv.conf
+      content: |
+        nameserver 8.8.8.8
+        nameserver 1.1.1.1
+
+  - name: Disable systemd-resolved service
+    ansible.builtin.systemd:
+      name: systemd-resolved
+      state: stopped
+      enabled: no
+
+  - name: Create /etc/systemd/system/fake-resolved.service file
+    copy:
+      dest: /etc/systemd/system/fake-resolved.service
+      content: |
+        [Unit]
+        Description=Systemd resolved substitute for Kosmos 
+        After=network.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=sh -c "mkdir -p /var/run/systemd/resolve/; cp /etc/resolv.conf /var/run/systemd/resolve/resolv.conf"
+        User=root
+        Group=root
+        RemainAfterExit=yes
+
+        [Install]
+        WantedBy=multi-user.target
+
+  - name: Reload systemd daemons
+    command: systemctl daemon-reload
+
+  - name: Enable fake-resolved service
+    ansible.builtin.systemd:
+      name: fake-resolved.service
+      state: started
+      enabled: yes
+...
