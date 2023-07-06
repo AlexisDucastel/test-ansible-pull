@@ -42,9 +42,6 @@
       path: /swap.img
       state: absent
 
-  # Cleaning second disk for Ceph is quite specific, there's no Ansible modules for this.
-  # This can be done with `command` module but is not recommended
-
   - name: Deactivate auto-upgrades
     copy:
       dest: /etc/apt/apt.conf.d/20auto-upgrades
@@ -130,4 +127,3 @@
       name: fake-resolved.service
       state: started
       enabled: yes
-...
